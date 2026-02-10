@@ -1,6 +1,7 @@
 # Image Masking in HTML Canvas
 
 This tool generates random string and use that string to mask the input image creating "fake ascii art" effect.
+[Try it yourself here](https://jonel-code.github.io/random-text-image-masking/?tl=100000&s=101&i=https://brand.github.com/_next/static/media/logo-03.cc5e5332.png)
 
 ### Query Parameters:
 - `i` : url of the image to mask. 
