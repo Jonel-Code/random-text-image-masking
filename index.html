@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mask</title>
+    <style>
+        body {
+            background-color: black;
+        }
+    </style>
+    <script>
+        const __globalSeed = 98481;
+        function RandomBySeed(seed, index) {
+            return Frac(Math.sin(index * __globalSeed) * seed);
+        }
+
+        function Frac(x) {
+            return x - Math.floor(x);
+        }
+
+        function IntToChar(val) {
+            if (val >= 0 && val < 25) {
+
+                return String.fromCharCode(97 + val);
+            }
+            return " ";
+        }
+
+        function Lerp(oldMax, newMax, val) {
+            return Math.round((val / oldMax) * newMax);
+        }
+
+        function RandomText(seed, length) {
+            let fillText = "";
+            const MaxValue = 100;
+            const MaxCharPool = 30; // can use more than 30, but beyond that will be empty character. for this case, 30 will add 5 white space character to pool
+            for (let i = 1; i < length; i++) {
+                const rand = Math.floor(RandomBySeed(seed, i) * MaxValue);
+                const charIndex = Lerp(MaxValue, MaxCharPool, rand);
+                fillText += IntToChar(charIndex);
+            }
+            return fillText;
+        }
+
+        function GetParams() {
+            const params = new URLSearchParams(window.location.search);
+            const imgLink = params.get('i');
+            const textSeed = Number.parseInt(params.get('s')) || 1;
+            const textLength = Number.parseInt(params.get('tl') || 100000);
+            return { imgLink, textSeed, textLength };
+        }
+
+        function ShowError(message) {
+            alert(`Error: ${message}`);
+        }
+
+        (() => {
+            document.onreadystatechange = (e) => {
+                if (document.readyState == 'interactive') {
+                    const { imgLink, textSeed, textLength } = GetParams();
+                    const bh = window.innerHeight;
+                    const bw = window.innerWidth;
+                    const lineWidth = bw * .95;
+                    const xBaseLine = bw * .5;
+
+                    /** @type {HTMLCanvasElement} */
+                    const render = document.getElementById('render');
+                    const ctx = render.getContext('2d');
+                    ctx.canvas.width = bw;
+                    ctx.canvas.height = bh;
+
+                    const img = new Image();
+                    img.src = imgLink;
+
+                    img.onerror = () => {
+                        ShowError('Image object error');
+                    }
+
+                    img.onload = () => {
+
+                        if (!img.complete) {
+                            ShowError('Unable to load image');
+                            return;
+                        }
+
+                        const imgRatio = img.height / img.width;
+                        const canvasRatio = bh / bw;
+                        /// calculate the values to be used for image adjustments, the values below are calculating to match the "cover" background style
+                        /// reference: https://codepen.io/andyranged/pen/YLybNQ
+                        const widthValue = imgRatio > canvasRatio
+                            ? bw
+                            : bh / imgRatio;
+                        const heightValue = imgRatio > canvasRatio
+                            ? bw * imgRatio
+                            : bh;
+                        const adjX = imgRatio > canvasRatio
+                            ? 0
+                            : (bw - widthValue) / 2;
+                        const adjY = imgRatio > canvasRatio
+                            ? (bh - heightValue) / 2
+                            : 0;
+
+                        ctx.font = 'bold 1em Arial';
+                        ctx.textAlign = 'center';
+                        const text = RandomText(textSeed, textLength);
+                        let lineText = "";
+                        let currentLine = 1;
+                        let accumulatedText = "";
+                        for (let i = 0; i < text.length; i++) {
+                            const element = text.charAt(i);
+                            lineText += element;
+                            const txtSize = ctx.measureText(lineText);
+                            if (txtSize.width >= lineWidth || i == (text.length - 1) && lineText.length > 0) {
+                                ctx.fillText(lineText, xBaseLine, currentLine * txtSize.actualBoundingBoxAscent * 1.1, lineWidth);
+                                accumulatedText += lineText + '\n';
+                                currentLine++;
+                                lineText = "";
+                            }
+                        }
+
+                        /// set this compoite operation to make the draw image on the next line to draw just on the rendered text above
+                        ctx.globalCompositeOperation = 'source-in';
+                        ctx.drawImage(img, adjX, adjY, widthValue, heightValue);
+                        ctx.globalCompositeOperation = 'source-over';
+                    };
+                }
+            };
+        })()
+    </script>
+</head>
+
+<body>
+    <canvas id="render" width="100vw" height="100vh"></canvas>
+</body>
+
+</html>
